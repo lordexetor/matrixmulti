@@ -6,8 +6,8 @@ public class PartialSolution {
 	private final double solution;
 	private final int row;
 	private final int column;
-	
-	public PartialSolution (double solution, int row, int column) {
+
+	public PartialSolution(double solution, int row, int column) {
 		this.solution = solution;
 		this.row = row;
 		this.column = column;
@@ -24,9 +24,10 @@ public class PartialSolution {
 	public int getColumn() {
 		return column;
 	}
-	
+
 	/**
 	 * Serialize the partial solution
+	 * 
 	 * @return a string of the format value#row#column
 	 */
 	public String serialize() {
@@ -38,12 +39,15 @@ public class PartialSolution {
 		s += Integer.toString(getColumn());
 		return s;
 	}
-	
+
 	/**
 	 * Deserialize a partial solution
-	 * @param s the serialized string
+	 * 
+	 * @param s
+	 *            the serialized string
 	 * @return a partial solution with the values from the serialization
-	 * @throws Exception is thrown if the string format is invalid
+	 * @throws Exception
+	 *             is thrown if the string format is invalid
 	 */
 	public static PartialSolution deserialize(String s) throws Exception {
 		String[] params = s.split("#");
@@ -52,8 +56,9 @@ public class PartialSolution {
 			int row = Integer.parseInt(params[1]);
 			int column = Integer.parseInt(params[2]);
 			return new PartialSolution(solution, row, column);
-		} else throw new Exception("Invalid String format. Cannot parse to partial Solution");
+		} else
+			throw new Exception("Invalid String format. Cannot parse to partial Solution");
 
 	}
-	
+
 }

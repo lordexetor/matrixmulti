@@ -7,7 +7,7 @@ public class PartialProblem {
 	private final double[] bValues;
 	private final int row;
 	private final int column;
-	
+
 	public PartialProblem(double[] aValues, double[] bValues, int row, int column) {
 		this.aValues = aValues;
 		this.bValues = bValues;
@@ -22,7 +22,7 @@ public class PartialProblem {
 	public int getColumn() {
 		return column;
 	}
-	
+
 	public double[] getaValues() {
 		return aValues;
 	}
@@ -30,9 +30,10 @@ public class PartialProblem {
 	public double[] getbValues() {
 		return bValues;
 	}
-	
+
 	/**
 	 * Serialize the PartialProblem
+	 * 
 	 * @return A string in the format aValues#bValues#row#column
 	 */
 	public String serialize() {
@@ -46,12 +47,15 @@ public class PartialProblem {
 		s += Integer.toString(getColumn());
 		return s;
 	}
-	
+
 	/**
 	 * Deserialize a partial problem
-	 * @param s the serialized string
+	 * 
+	 * @param s
+	 *            the serialized string
 	 * @return a partial problem conatining the serialized values.
-	 * @throws Exception when the string is not in the correct format
+	 * @throws Exception
+	 *             when the string is not in the correct format
 	 */
 	public static PartialProblem deserialize(String s) throws Exception {
 		String[] params = s.split("#");
@@ -61,9 +65,10 @@ public class PartialProblem {
 			int row = Integer.parseInt(params[2]);
 			int column = Integer.parseInt(params[3]);
 			return new PartialProblem(aValues, bValues, row, column);
-		} else throw new Exception("Invalid String format. Cannot parse to partial Problem");
+		} else
+			throw new Exception("Invalid String format. Cannot parse to partial Problem");
 	}
-	
+
 	private static double[] fromString(String string) {
 		String[] strValues = string.replace("[", "").replace("]", "").split(", ");
 		double[] values = new double[strValues.length];
