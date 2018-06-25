@@ -1,11 +1,11 @@
 package matrixmulti.data;
 
-public class WorkerTask {
+public class PartialProblem {
 	private final double[] values;
 	private final int row;
 	private final int column;
 	
-	public WorkerTask(double[] values, int row, int column) {
+	public PartialProblem(double[] values, int row, int column) {
 		this.values = values;
 		this.row = row;
 		this.column = column;
