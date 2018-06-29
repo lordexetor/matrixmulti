@@ -127,20 +127,31 @@ public class Server {
 			PartialSolution partialSolution = PartialSolution.deserialize(reply);
 			System.out.println("Received worker: " + partialSolution.getSolution());
 			matrixMap.get(clientAddr).add(partialSolution);
-			// TODO: combine solutions, send them to client
-			// frontend.sendMore(clientAddr);
-			// frontend.sendMore("");
-			// frontend.send(reply);
+			// combine solutions, send them to client
 			// If we have solved all problems of a client, combine solutions to matrix and send to client
 			if(partialProblemMap.get(clientAddr).size() <= 0) {
 				ArrayList<PartialSolution> solutions = matrixMap.get(clientAddr);
 				ArrayList<ArrayList<Double>> values = new ArrayList<ArrayList<Double>>();
 				for(PartialSolution _partialSolution : solutions) {
-					int row = _partialSolution.getRow();
-					int column = _partialSolution.getColumn();
+					int row = _partialSolution.getRow() -1;
+					int column = _partialSolution.getColumn() -1;
+					if(values.get(row).isEmpty()) {
+						values.add(row, new ArrayList<Double>());
+					}
 					values.get(row).add(column, _partialSolution.getSolution());
 				}
-				// Matrix matrix = new Matrix();
+				double[][] forMatrix = new double[values.size()][values.get(0).size()];
+				for (int i = 0; i < values.size(); i++) {
+					ArrayList<Double> current = values.get(i);
+					for (int j = 0; j < current.size(); j++) {
+						forMatrix[i][j] = current.get(j);
+					}
+				}
+				Matrix matrix = new Matrix(forMatrix);
+				String finalMessage = matrix.serialize();
+				frontend.sendMore(clientAddr);
+				frontend.sendMore("");
+				frontend.send(finalMessage);
 			}
 		}
 	}

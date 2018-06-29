@@ -30,11 +30,7 @@ public class Client {
 			 Matrix B = new Matrix(valuesB);
 			
 			 this.sendProblem(A, B);
-			// setInterval(function(){
-			// console.log('sending work');
-			// sock.send('some work');
-			// }, 500);
-
+			 String resolution = socket.recvStr();
 		} finally {
 			socket.close();
 			context.close();
