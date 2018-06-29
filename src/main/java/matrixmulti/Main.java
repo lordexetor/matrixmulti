@@ -9,8 +9,9 @@ public class Main{
 	 * @param args First argument is "c" or "s" or "w"
 	 * If server, add frontendURL and backendURL
 	 * If worker, add backendURL
+	 * @throws Exception 
 	 */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
     	switch(args.length) {
     		default:
     			System.out.println("Please state necessary parameters");

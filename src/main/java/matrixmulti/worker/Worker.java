@@ -2,9 +2,11 @@ package matrixmulti.worker;
 
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Context;
+import org.zeromq.ZMQ.Poller;
 import org.zeromq.ZMQ.Socket;
 
 import matrixmulti.data.PartialProblem;
@@ -12,7 +14,7 @@ import matrixmulti.data.PartialSolution;
 
 public class Worker {
 
-	private boolean stopped = false;
+	private final AtomicBoolean stopped = new AtomicBoolean(false);
 	private final String serverBackendURL;
 	private final String id = UUID.randomUUID().toString();
 	private Socket socket;
@@ -21,7 +23,7 @@ public class Worker {
 		this.serverBackendURL = serverBackendURL;
 	}
 
-	public void run(){
+	public void run() throws Exception{
 		System.out.println("Starting Worker ...");
 		try {
 			Context context = ZMQ.context(1);
@@ -30,8 +32,8 @@ public class Worker {
 			socket.connect(serverBackendURL);
 			// Tell server we're ready for work
 			socket.send("READY");
-			System.out.println("Sent READY");
-			while (!stopped) {
+			System.out.println("Worker ready...");
+			while (!stopped.get()) {
 				PartialProblem partialProblem = null;
 				// Try to fetch a problem from the server
 				partialProblem = getServerPartialproblem();
@@ -49,8 +51,8 @@ public class Worker {
 					partialSolution = null;
 				}
 			}
-		} catch (Exception e) {
-
+		}  finally {
+			socket.close();
 		}
 	}
 
@@ -86,7 +88,7 @@ public class Worker {
 	 * @throws Exception
 	 */
 	private PartialProblem getServerPartialproblem() throws Exception {
-		// payload frame
+		// payload frame - wait for a Request // NOT A RESPONSE FROM PREVIOUS REQUEST
 		String clientAddress = socket.recvStr();
 		// empty frame
 		String empty = socket.recvStr();
