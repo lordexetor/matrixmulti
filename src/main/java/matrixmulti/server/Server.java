@@ -130,25 +130,28 @@ public class Server {
 			// combine solutions, send them to client
 			// If we have solved all problems of a client, combine solutions to matrix and send to client
 			if(partialProblemMap.get(clientAddr).size() <= 0) {
-				ArrayList<PartialSolution> solutions = matrixMap.get(clientAddr);
-				ArrayList<ArrayList<Double>> values = new ArrayList<ArrayList<Double>>();
-				for(PartialSolution _partialSolution : solutions) {
-					int row = _partialSolution.getRow() -1;
-					int column = _partialSolution.getColumn() -1;
-					if(values.get(row).isEmpty()) {
-						values.add(row, new ArrayList<Double>());
-					}
-					values.get(row).add(column, _partialSolution.getSolution());
+				// Get solutions of ClientAddr
+				ArrayList<PartialSolution> partialSolutions = matrixMap.get(clientAddr);
+				// Create 2D ArrayList
+				// Iterate over every partialSolution and put the values in to the correct index for ordering
+				int maxRow = 0;
+				int maxColumn = 0;
+				for(PartialSolution _partialSolution : partialSolutions) {
+					int row = _partialSolution.getRow();
+					int column = _partialSolution.getColumn();
+					if(row > maxRow) maxRow = row;
+					if(column > maxColumn) maxColumn = column;
 				}
-				double[][] forMatrix = new double[values.size()][values.get(0).size()];
-				for (int i = 0; i < values.size(); i++) {
-					ArrayList<Double> current = values.get(i);
-					for (int j = 0; j < current.size(); j++) {
-						forMatrix[i][j] = current.get(j);
-					}
+				// Create 2D Array, where the dimensions are tied to the maxRow/Column
+				double[][] solutionsArray = new double[maxRow][maxColumn];
+				for (PartialSolution _partialSolution: partialSolutions) {
+					int row = _partialSolution.getRow()+1;
+					int column = _partialSolution.getColumn()+1;
+					solutionsArray[row][column] = _partialSolution.getSolution();
 				}
-				Matrix matrix = new Matrix(forMatrix);
+				Matrix matrix = new Matrix(solutionsArray);
 				String finalMessage = matrix.serialize();
+				System.out.println(finalMessage);
 				frontend.sendMore(clientAddr);
 				frontend.sendMore("");
 				frontend.send(finalMessage);
