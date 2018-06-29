@@ -25,7 +25,8 @@ public class Main{
     			}
     			
     			else if (args[0].equals("w") && !args[1].isEmpty()) {
-    				//TODO: start worker
+    				Worker worker = new Worker(args[1]);
+    				worker.run();
     			}
     			
     			break;

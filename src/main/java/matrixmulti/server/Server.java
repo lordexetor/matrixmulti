@@ -1,8 +1,11 @@
 package matrixmulti.server;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 
 import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Context;
@@ -19,9 +22,11 @@ public class Server {
 	private Socket frontend;
 	private Socket backend;
 	private Context context;
-	Queue<String> workerQueue = new LinkedList<String>();
+	private Queue<String> workerQueue = new LinkedList<String>();
 	private boolean stopped = false;
-
+	private ArrayList<PartialProblem> partialProblems = new ArrayList<PartialProblem>();
+	private Map<String, ArrayList<PartialProblem>> tupel = new HashMap<String, ArrayList<PartialProblem>>();
+	
 	public Server(String frontendURL, String backendURL) {
 		this.frontendURL = frontendURL;
 		this.backendURL = backendURL;
@@ -40,38 +45,45 @@ public class Server {
 			System.out.println("Worker Socket on " + backendURL);
 			// Here is the loop for the server
 			while (!stopped) {
+				// Create 2 poller items
 				Poller items = context.poller(2);
+				//	Poll back-end
 				int backendPollerId = items.register(backend, Poller.POLLIN);
-				int frontendPollerId = items.register(frontend, Poller.POLLIN);
-				
+				//	Poll front-end only if we have available workers
+				int frontendPollerId = -1;
+				if (workerQueue.size() > 0)
+					frontendPollerId = items.register(frontend, Poller.POLLIN);
+				//	If there are no signals during poll, break
 				if (items.poll() < 0)
 					break;
-				// TODO: only poll frontend if workers are available
+				// If we get here, there are available workers and we received sth. from frontend,
+				// therefore we handle our frontend
 				if (items.pollin(frontendPollerId)) {
 					System.out.println("Problem received");
 					frontendActivity();
 				}
-				
-//				// Initialize poll set
-//				Poller items = context.poller(2);
-//				// Always poll for worker activity on backend
-//				int backendPollerId = items.register(backend, Poller.POLLIN);
-//				
-//				
-////				// Poll frontend only if we have available workers
-//				int frontendPollerId = -1;
-////				if (workerQueue.size() > 0)
-//					frontendPollerId = items.register(frontend, Poller.POLLIN);
-////				// If there is nothing, break
-//				if (items.poll() < 0)
-//					break;
-//				// Handle worker activity on backend
-//				if (items.pollin(backendPollerId))
-//					System.out.println("Problem received");
-////					backendActivity();
-////				// Handle client activity on frontend
-////				if (items.pollin(backendPollerId))
-////					frontendActivity();
+				// If we get here, ...
+				if (items.pollin(backendPollerId)) {
+					backendActivity();
+				}
+				//	If there are available works and problems, send out a problem
+				if(workerQueue.size() > 0 && partialProblems.size() > 0) {
+					// Determine index of last problem in our list
+					int indexLastProblem = partialProblems.size() - 1;
+					// Get last problem of our problem list.
+					PartialProblem partialProblem = partialProblems.get(indexLastProblem);
+					// Remove last problem from our list
+					partialProblems.remove(indexLastProblem);
+					// Serialize problem into a String
+					String payload = partialProblem.serialize();
+					// Send problem to a available worker
+					String workerAddress = workerQueue.remove();
+					backend.sendMore(workerAddress);
+					backend.sendMore("");
+					// backend.sendMore(clientAddr);
+					backend.sendMore("");
+					backend.send(payload);
+				}
 			}
 		} finally {
 			frontend.close();
@@ -83,12 +95,14 @@ public class Server {
 	private void backendActivity() {
 		// Queue worker address for LRU routing
 		String workerAddr = backend.recvStr();
+		System.out.println(workerAddr);
 		workerQueue.add(workerAddr);
 		// Second frame is empty
 		byte[] empty = backend.recv();
 		assert (empty.length == 0);
 		// Third frame is READY or else client reply address
 		String clientAddr = backend.recvStr();
+		System.out.println(clientAddr);
 		// If worker reply with value, receive from backend and add value to result
 		if (!clientAddr.equals("READY")) {
 			empty = backend.recv();
@@ -110,8 +124,7 @@ public class Server {
 		try {
 			Matrix A = Matrix.deserialize(separateMatrices[0]);
 			Matrix B = Matrix.deserialize(separateMatrices[1]);
-			
-			ArrayList<PartialProblem> partialProblems = new ArrayList<PartialProblem>();
+			partialProblems = new ArrayList<PartialProblem>();
 			
 			for (int r = 0; r < A.getRows(); r++) {
 				for (int c = 0; c < B.getColumns(); c++) {
@@ -119,11 +132,8 @@ public class Server {
 					partialProblems.add(p);
 				}
 			}
-			
 			System.out.println("Created " + partialProblems.size() + " partial problems to solve");
-			// TODO: serialize and send the partial problems to the workers
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		

@@ -21,32 +21,36 @@ public class Worker {
 		this.serverBackendURL = serverBackendURL;
 	}
 
-	public void run() throws Exception {
+	public void run(){
 		System.out.println("Starting Worker ...");
-		Context context = ZMQ.context(1);
-		socket = context.socket(ZMQ.REQ);
+		try {
+			Context context = ZMQ.context(1);
+			socket = context.socket(ZMQ.REQ);
+			socket.setIdentity(id.getBytes());
+			socket.connect(serverBackendURL);
+			// Tell server we're ready for work
+			socket.send("READY");
+			System.out.println("Sent READY");
+			while (!stopped) {
+				PartialProblem partialProblem = null;
+				// Try to fetch a problem from the server
+				partialProblem = getServerPartialproblem();
+				// If the server supplied us a problem, solve it. Then null the problem.
+				PartialSolution partialSolution = null;
+				if (partialProblem != null) {
+					partialSolution = solveProblem(partialProblem);
+					partialProblem = null;
+				}
+				// If there is a solved problem, return value to server
+				if (partialSolution != null) {
+					// TODO: sendValue(value)
+					// ++++++++++++++++++++++++
+					// Null the solution
+					partialSolution = null;
+				}
+			}
+		} catch (Exception e) {
 
-		socket.setIdentity(id.getBytes());
-		socket.connect(serverBackendURL);
-		// Tell server we're ready for work
-		socket.send("READY");
-		while (!stopped) {
-			PartialProblem partialProblem = null;
-			// Try to fetch a problem from the server
-			partialProblem = getServerPartialproblem();
-			// If the server supplied us a problem, solve it. Then null the problem.
-			PartialSolution partialSolution = null;
-			if (partialProblem != null) {
-				partialSolution = solveProblem(partialProblem);
-				partialProblem = null;
-			}
-			// If there is a solved problem, return value to server
-			if (partialSolution != null) {
-				// TODO: sendValue(value)
-				// ++++++++++++++++++++++++
-				// Null the solution
-				partialSolution = null;
-			}
 		}
 	}
 
