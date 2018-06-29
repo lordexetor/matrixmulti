@@ -26,7 +26,8 @@ public class Server {
 	private boolean stopped = false;
 	private Queue<String> workerQueue = new LinkedList<String>();
 	private Map<String, ArrayList<PartialProblem>> partialProblemMap = new HashMap<String, ArrayList<PartialProblem>>();
-	
+	private Map<String, ArrayList<PartialSolution>> matrixMap = new HashMap<String, ArrayList<PartialSolution>>();
+
 	public Server(String frontendURL, String backendURL) {
 		this.frontendURL = frontendURL;
 		this.backendURL = backendURL;
@@ -46,19 +47,20 @@ public class Server {
 			while (!stopped) {
 				// Create 2 poller items
 				Poller items = context.poller(2);
-				//	Poll back-end & front-end
+				// Poll back-end & front-end
 				int backendPollerId = items.register(backend, Poller.POLLIN);
 				int frontendPollerId = -1;
 				if (workerQueue.size() > 0)
 					frontendPollerId = items.register(frontend, Poller.POLLIN);
-				//	If there are no signals during poll, break
+				// If there are no signals during poll, break
 				if (items.poll() < 0)
 					break;
 				// Checks for available workers to queue
 				if (items.pollin(backendPollerId)) {
 					backendActivity();
 				}
-				// If we get here, there are available workers and we received sth. from frontend,
+				// If we get here, there are available workers and we received sth. from
+				// frontend,
 				// therefore we handle our frontend
 				if (items.pollin(frontendPollerId)) {
 					frontendActivity();
@@ -71,7 +73,7 @@ public class Server {
 			context.close();
 		}
 	}
-	
+
 	/**
 	 * Handles the frontend activity
 	 */
@@ -80,7 +82,7 @@ public class Server {
 		byte[] empty = frontend.recv();
 		assert (empty.length == 0);
 		String problem = frontend.recvStr();
-		
+
 		String[] separateMatrices = problem.split("X");
 		assert (separateMatrices.length == 2);
 		try {
@@ -93,8 +95,10 @@ public class Server {
 					partialProblems.add(p);
 				}
 			}
+			// Create a space where the problems and solutions of a client can be stored
 			partialProblemMap.put(clientAddr, partialProblems);
-			System.out.println("New Problem client: "+ clientAddr + " Size: " + partialProblems.size());
+			matrixMap.put(clientAddr, new ArrayList<PartialSolution>());
+			System.out.println("New Problem client: " + clientAddr + " Size: " + partialProblems.size());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -102,7 +106,8 @@ public class Server {
 
 	/**
 	 * handles the backend activity
-	 * @throws Exception 
+	 * 
+	 * @throws Exception
 	 */
 	private void backendActivity() throws Exception {
 		// Queue worker address for LRU routing
@@ -113,7 +118,7 @@ public class Server {
 		assert (empty.length == 0);
 		// Third frame is READY or else client reply address
 		String clientAddr = backend.recvStr();
-		System.out.println("Added worker: "+ workerAddr +", currently:"+workerQueue.size());
+		System.out.println("Added worker: " + workerAddr + ", currently:" + workerQueue.size());
 		// If worker sends a client address, route back to client
 		if (!clientAddr.equals("READY")) {
 			empty = backend.recv();
@@ -121,42 +126,53 @@ public class Server {
 			String reply = backend.recvStr();
 			PartialSolution partialSolution = PartialSolution.deserialize(reply);
 			System.out.println("Received worker: " + partialSolution.getSolution());
-			//frontend.sendMore(clientAddr);
-			//frontend.sendMore("");
-			//frontend.send(reply);
+			matrixMap.get(clientAddr).add(partialSolution);
+			// TODO: combine solutions, send them to client
+			// frontend.sendMore(clientAddr);
+			// frontend.sendMore("");
+			// frontend.send(reply);
+			// If we have solved all problems of a client, combine solutions to matrix and send to client
+			if(partialProblemMap.get(clientAddr).size() <= 0) {
+				ArrayList<PartialSolution> solutions = matrixMap.get(clientAddr);
+				ArrayList<ArrayList<Double>> values = new ArrayList<ArrayList<Double>>();
+				for(PartialSolution _partialSolution : solutions) {
+					int row = _partialSolution.getRow();
+					int column = _partialSolution.getColumn();
+					values.get(row).add(column, _partialSolution.getSolution());
+				}
+				// Matrix matrix = new Matrix();
+			}
 		}
 	}
 
-	
-	
 	private void sendProblem() {
 		// If there are no clients, pass.
-				if(partialProblemMap.size() > 0) {
-					// Iterate over each client
-					for(String clientAddr : partialProblemMap.keySet()) {
-						// Get ProblemList of this client
-						ArrayList<PartialProblem> partialProblems = partialProblemMap.get(clientAddr);
-						//	If there are available works and problems for this client, send a problem
-						if(workerQueue.size() > 0 && partialProblems.size() > 0) {
-							// Determine index of last problem in our list
-							int indexLastProblem = partialProblems.size() - 1;
-							// Get last problem of our problem list.
-							PartialProblem partialProblem = partialProblems.get(indexLastProblem);
-							// Remove last problem from our list
-							partialProblems.remove(indexLastProblem);
-							// Serialize problem into a String
-							String payload = partialProblem.serialize();
-							// Send problem to a available worker
-							String workerAddress = workerQueue.remove();
-							System.out.println("Removed worker: "+ workerAddress+", currently:" + workerQueue.size());
-							backend.sendMore(workerAddress);
-							backend.sendMore("");
-							backend.sendMore(clientAddr);
-							backend.sendMore("");
-							backend.send(payload);
-						}
-					}	
+		if (partialProblemMap.size() > 0) {
+			// Iterate over each client
+			for (String clientAddr : partialProblemMap.keySet()) {
+				// Get ProblemList of this client
+				ArrayList<PartialProblem> partialProblems = partialProblemMap.get(clientAddr);
+				// If there are available works and problems for this client, send a problem
+				if (workerQueue.size() > 0 && partialProblems.size() > 0) {
+					// Determine index of last problem in our list
+					int indexLastProblem = partialProblems.size() - 1;
+					// Get last problem of our problem list.
+					PartialProblem partialProblem = partialProblems.get(indexLastProblem);
+					// Remove last problem from our list
+					partialProblems.remove(indexLastProblem);
+					// Serialize problem into a String
+					String payload = partialProblem.serialize();
+					// Send problem to a available worker
+					String workerAddress = workerQueue.remove();
+					System.out.println("Removed worker: " + workerAddress + ", currently:" + workerQueue.size());
+					backend.sendMore(workerAddress);
+					backend.sendMore("");
+					backend.sendMore(clientAddr);
+					backend.sendMore("");
+					backend.send(payload);
 				}
+			}
+		}
 	}
 
 }
