@@ -11,9 +11,11 @@ public class Client {
 	private Socket socket;
 	private Context context;
 	private final String serverURL;
+	private final String id;
 	
 	public Client(String serverURL) {
 		this.serverURL = serverURL;
+		this.id = generateId();
 	}
 	
 	public void run() {
@@ -21,6 +23,7 @@ public class Client {
 			context = ZMQ.context(1);
 			socket = context.socket(ZMQ.REQ);
 			System.out.println("Starting Client ...");
+			socket.setIdentity(id.getBytes());
 			socket.connect(serverURL);
 			System.out.println("Connected to Server (Router) on " + serverURL);
 
@@ -29,7 +32,7 @@ public class Client {
 			 Matrix A = new Matrix(valuesA);
 			 Matrix B = new Matrix(valuesB);
 			
-			 this.sendProblem(A, B);
+			 sendProblem(A, B);
 			 String resolution = socket.recvStr();
 			 System.out.println("Solution is: " + resolution);
 			 try {
