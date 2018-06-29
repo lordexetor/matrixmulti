@@ -24,7 +24,6 @@ public class Server {
 	private Context context;
 	private Queue<String> workerQueue = new LinkedList<String>();
 	private boolean stopped = false;
-	private ArrayList<PartialProblem> partialProblems = new ArrayList<PartialProblem>();
 	private Map<String, ArrayList<PartialProblem>> tupel = new HashMap<String, ArrayList<PartialProblem>>();
 	
 	public Server(String frontendURL, String backendURL) {
@@ -67,23 +66,29 @@ public class Server {
 					backendActivity();
 				}
 				//	If there are available works and problems, send out a problem
-				if(workerQueue.size() > 0 && partialProblems.size() > 0) {
-					// Determine index of last problem in our list
-					int indexLastProblem = partialProblems.size() - 1;
-					// Get last problem of our problem list.
-					PartialProblem partialProblem = partialProblems.get(indexLastProblem);
-					// Remove last problem from our list
-					partialProblems.remove(indexLastProblem);
-					// Serialize problem into a String
-					String payload = partialProblem.serialize();
-					// Send problem to a available worker
-					String workerAddress = workerQueue.remove();
-					backend.sendMore(workerAddress);
-					backend.sendMore("");
-					// backend.sendMore(clientAddr);
-					backend.sendMore("");
-					backend.send(payload);
+				if(tupel.size() > 0) {
+					for(String clientAddr : tupel.keySet()) {
+						ArrayList<PartialProblem> partialProblems = tupel.get(clientAddr);
+						if(workerQueue.size() > 0 && partialProblems.size() > 0) {
+							// Determine index of last problem in our list
+							int indexLastProblem = partialProblems.size() - 1;
+							// Get last problem of our problem list.
+							PartialProblem partialProblem = partialProblems.get(indexLastProblem);
+							// Remove last problem from our list
+							partialProblems.remove(indexLastProblem);
+							// Serialize problem into a String
+							String payload = partialProblem.serialize();
+							// Send problem to a available worker
+							String workerAddress = workerQueue.remove();
+							backend.sendMore(workerAddress);
+							backend.sendMore("");
+							backend.sendMore(clientAddr);
+							backend.sendMore("");
+							backend.send(payload);
+						}
+					}	
 				}
+				
 			}
 		} finally {
 			frontend.close();
@@ -124,14 +129,14 @@ public class Server {
 		try {
 			Matrix A = Matrix.deserialize(separateMatrices[0]);
 			Matrix B = Matrix.deserialize(separateMatrices[1]);
-			partialProblems = new ArrayList<PartialProblem>();
-			
+			ArrayList<PartialProblem> partialProblems = new ArrayList<PartialProblem>();
 			for (int r = 0; r < A.getRows(); r++) {
 				for (int c = 0; c < B.getColumns(); c++) {
 					PartialProblem p = new PartialProblem(A.getRow(r), B.getColumn(c), r, c);
 					partialProblems.add(p);
 				}
 			}
+			tupel.put(clientAddr, partialProblems);
 			System.out.println("Created " + partialProblems.size() + " partial problems to solve");
 		} catch (Exception e) {
 			e.printStackTrace();
