@@ -23,7 +23,7 @@ public class Worker {
 		this.serverBackendURL = serverBackendURL;
 	}
 
-	public void run() throws Exception{
+	public void run() throws Exception {
 		System.out.println("Starting Worker ...");
 		try {
 			Context context = ZMQ.context(1);
@@ -37,51 +37,29 @@ public class Worker {
 			while (!stopped.get()) {
 				PartialProblem partialProblem = null;
 				// Try to fetch a problem from the server
+				String clientAddress = socket.recvStr();
 				partialProblem = getServerPartialproblem();
 				// If the server supplied us a problem, solve it. Then null the problem.
 				PartialSolution partialSolution = null;
 				if (partialProblem != null) {
 					System.out.println(partialProblem.serialize());
+					System.out.println(partialProblem.getRow());
+					System.out.println(partialProblem.getColumn());
 					partialSolution = solveProblem(partialProblem);
 					partialProblem = null;
 				}
 				// If there is a solved problem, return value to server
 				if (partialSolution != null) {
-					// TODO: sendValue(value)
-					// ++++++++++++++++++++++++
-					// Null the solution
+					String message = partialSolution.serialize();
+					socket.sendMore(clientAddress);
+					socket.sendMore("");
+					socket.send(message);
 					partialSolution = null;
 				}
 			}
-		}  finally {
+		} finally {
 			socket.close();
 		}
-	}
-
-	/**
-	 * Returns the result of A x B TODO: Document and javascriptify
-	 */
-	private PartialSolution multiplyMatrices(PartialProblem _partialProblem) {
-		// if (matrixA.getNumberOfColumns() == matrixB.getNumberOfRows()) {
-		// // Solve the matrix.
-		// Matrix matrixC = new Matrix(matrixA.getNumberOfRows(),
-		// matrixB.getNumberOfColumns());
-		// for (row_A = 0; row_A < matrixA.getNumberOfRows(); row_A++) {
-		// row = martrixA.getRow(row_A);
-		// for (column_B = 0; column_B < matrixB.getNumberOfColumns(); column_B++) {
-		// sum = 0;
-		// column = B.getColumn(column_B);
-		// for (i = 0; i < row.length; i++) {
-		// sum += row[i] * column[i];
-		// }
-		// C.setValue(row_A, column_B, sum);
-		// }
-		// }
-		// return C;
-		// } else {
-		// throw new Exception("The matrices can not be multiplied.");
-		// }
-		return null;
 	}
 
 	/**
@@ -90,8 +68,6 @@ public class Worker {
 	 * @throws Exception
 	 */
 	private PartialProblem getServerPartialproblem() throws Exception {
-		// payload frame - wait for a Request // NOT A RESPONSE FROM PREVIOUS REQUEST
-		String clientAddress = socket.recvStr();
 		// empty frame
 		String empty = socket.recvStr();
 		assert (empty.length() == 0);
@@ -110,9 +86,25 @@ public class Worker {
 	 * Uses a PartialProblem to get the row and column that should be computed.
 	 * Using these Arrays, we can call the multiply Matrices function to solve the
 	 * problem. After that, the partialSolution is returned.
+	 * @throws Exception 
 	 */
-	private PartialSolution solveProblem(PartialProblem _partialProblem) {
-		PartialSolution partialSolution = multiplyMatrices(_partialProblem);
+	private PartialSolution solveProblem(PartialProblem _partialProblem) throws Exception {
+		double[] a = _partialProblem.getaValues();
+		double[] b = _partialProblem.getbValues();
+		double result = 0;
+		PartialSolution partialSolution = null;
+		if (a.length == b.length) {
+			for(int i = 0; i < a.length; i++) {
+				double valueA = a[i];
+				double valueB = b[i];
+				double value = valueA * valueB;
+				result += value;
+			}
+			partialSolution = new PartialSolution(result,_partialProblem.getRow(),_partialProblem.getColumn());
+		} else {
+			throw new Exception("The matrices can not be multiplied.");
+		}
+		System.out.println("Result is: "+result);
 		return partialSolution;
 	}
 }

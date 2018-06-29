@@ -24,8 +24,8 @@ public class Client {
 			socket.connect(serverURL);
 			System.out.println("Connected to Server (Router) on " + serverURL);
 
-			double[][] valuesA = {{1.0,2.0,3.0} , {3.0,4.0,5.0}};
-			double[][] valuesB = {{2.0,1.0},{2.0,2.0},{3.0,1.0}};
+			double[][] valuesA = {{3.0,2.0,1.0} , {1.0,0.0,2.0}};
+			double[][] valuesB = {{1.0,2.0},{0.0,1.0},{4.0,0.0}};
 			 Matrix A = new Matrix(valuesA);
 			 Matrix B = new Matrix(valuesB);
 			

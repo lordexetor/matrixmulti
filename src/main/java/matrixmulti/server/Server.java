@@ -127,6 +127,7 @@ public class Server {
 		System.out.println("Added worker: "+ workerAddr +", currently:"+workerQueue.size());
 		// If worker sends a client address, route back to client
 		if (!clientAddr.equals("READY")) {
+			System.out.println("SERVER HAS RESULT");
 			empty = backend.recv();
 			assert (empty.length == 0);
 			byte[] reply = backend.recv();
