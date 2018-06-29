@@ -24,6 +24,18 @@ public class Matrix {
 	public int getColumns() {
 		return columns;
 	}
+	
+	public double[] getRow(int i) {
+		return values[i];
+	}
+	
+	public double[] getColumn(int i) {
+		double[] colValues = new double[getRows()];
+		for (int j = 0; j < getRows(); j++) {
+			colValues[j] = values[j][i];
+		}
+		return colValues;
+	}
 
 	/**
 	 * Serialize this matrix in the format values#rows#columns
@@ -46,11 +58,11 @@ public class Matrix {
 			int rows = Integer.parseInt(params[1]);
 			int columns = Integer.parseInt(params[2]);
 			double[][] values = new double[rows][columns];
-			String[] strValues = params[0].replaceAll("[", "").replaceAll("]", "").replaceAll(",", "").split(" ");
+			String[] strValues = params[0].replaceAll("[\\[\\]\\,]", "").split(" ");
 			int n = 0;
 			for (int i = 0; i < rows; i++) {
 				for (int j = 0; j < columns; j++) {
-					values[i][j] = Integer.parseInt(strValues[n]);
+					values[i][j] = Double.parseDouble(strValues[n]);
 					n++;
 				}
 			}
