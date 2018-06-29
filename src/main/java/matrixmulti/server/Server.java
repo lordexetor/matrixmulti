@@ -139,14 +139,15 @@ public class Server {
 				for(PartialSolution _partialSolution : partialSolutions) {
 					int row = _partialSolution.getRow();
 					int column = _partialSolution.getColumn();
-					if(row > maxRow) maxRow = row;
-					if(column > maxColumn) maxColumn = column;
+					if(row > maxRow) maxRow = row+1;
+					if(column > maxColumn) maxColumn = column+1;
 				}
 				// Create 2D Array, where the dimensions are tied to the maxRow/Column
+				System.out.println("Created Array: "+maxRow+"x"+maxColumn);
 				double[][] solutionsArray = new double[maxRow][maxColumn];
 				for (PartialSolution _partialSolution: partialSolutions) {
-					int row = _partialSolution.getRow()+1;
-					int column = _partialSolution.getColumn()+1;
+					int row = _partialSolution.getRow();
+					int column = _partialSolution.getColumn();
 					solutionsArray[row][column] = _partialSolution.getSolution();
 				}
 				Matrix matrix = new Matrix(solutionsArray);
