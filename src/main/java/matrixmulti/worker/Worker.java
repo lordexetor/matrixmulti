@@ -32,6 +32,7 @@ public class Worker {
 			socket.connect(serverBackendURL);
 			// Tell server we're ready for work
 			socket.send("READY");
+			socket.bind("tcp://192.168.178.60:5557");
 			System.out.println("Worker ready...");
 			while (!stopped.get()) {
 				PartialProblem partialProblem = null;
@@ -40,6 +41,7 @@ public class Worker {
 				// If the server supplied us a problem, solve it. Then null the problem.
 				PartialSolution partialSolution = null;
 				if (partialProblem != null) {
+					System.out.println(partialProblem.serialize());
 					partialSolution = solveProblem(partialProblem);
 					partialProblem = null;
 				}
