@@ -31,6 +31,13 @@ public class Client {
 			
 			 this.sendProblem(A, B);
 			 String resolution = socket.recvStr();
+			 System.out.println("Solution is: " + resolution);
+			 try {
+				Matrix C = Matrix.deserialize(resolution);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		} finally {
 			socket.close();
 			context.close();
