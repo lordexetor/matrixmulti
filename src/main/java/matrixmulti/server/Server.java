@@ -62,7 +62,7 @@ public class Server {
 				if (items.pollin(frontendPollerId)) {
 					frontendActivity();
 				}
-				
+				sendProblem();
 			}
 		} finally {
 			frontend.close();
@@ -94,27 +94,30 @@ public class Server {
 			}
 			tupel.put(clientAddr, partialProblems);
 			System.out.println("New Problem client: "+ clientAddr + " Size: " + partialProblems.size());
-			// Determine index of last problem in our list
-			int indexLastProblem = partialProblems.size() - 1;
-			// Get last problem of our problem list.
-			PartialProblem partialProblem = partialProblems.get(indexLastProblem);
-			// Remove last problem from our list
-			partialProblems.remove(indexLastProblem);
-			// Serialize problem into a String
-			String payload = partialProblem.serialize();
-			// Send problem to a available worker
-			String workerAddress = workerQueue.remove();
-			System.out.println("Removed worker: "+ workerAddress+", currently:" + workerQueue.size());
-			backend.sendMore(workerAddress);
-			backend.sendMore("");
-			backend.sendMore(clientAddr);
-			backend.sendMore("");
-			backend.send(payload);
+//			// Determine index of last problem in our list
+//			int indexLastProblem = partialProblems.size() - 1;
+//			// Get last problem of our problem list.
+//			PartialProblem partialProblem = partialProblems.get(indexLastProblem);
+//			// Remove last problem from our list
+//			partialProblems.remove(indexLastProblem);
+//			// Serialize problem into a String
+//			String payload = partialProblem.serialize();
+//			// Send problem to a available worker
+//			String workerAddress = workerQueue.remove();
+//			System.out.println("Removed worker: "+ workerAddress+", currently:" + workerQueue.size());
+//			backend.sendMore(workerAddress);
+//			backend.sendMore("");
+//			backend.sendMore(clientAddr);
+//			backend.sendMore("");
+//			backend.send(payload);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
+	/**
+	 * handles the backend activity
+	 */
 	private void backendActivity() {
 		// Queue worker address for LRU routing
 		String workerAddr = backend.recvStr();
@@ -142,32 +145,32 @@ public class Server {
 	
 	private void sendProblem() {
 		// If there are no clients, pass.
-		if(tupel.size() > 0) {
-			// Iterate over each client
-			for(String clientAddr : tupel.keySet()) {
-				// Get ProblemList of this client
-				ArrayList<PartialProblem> partialProblems = tupel.get(clientAddr);
-				//	If there are available works and problems for this client, send a problem
-				if(workerQueue.size() > 0 && partialProblems.size() > 0) {
-					// Determine index of last problem in our list
-					int indexLastProblem = partialProblems.size() - 1;
-					// Get last problem of our problem list.
-					PartialProblem partialProblem = partialProblems.get(indexLastProblem);
-					// Remove last problem from our list
-					partialProblems.remove(indexLastProblem);
-					// Serialize problem into a String
-					String payload = partialProblem.serialize();
-					// Send problem to a available worker
-					String workerAddress = workerQueue.remove();
-					System.out.println("Removed worker: "+ workerAddress+", currently:" + workerQueue.size());
-					backend.sendMore(workerAddress);
-					backend.sendMore("");
-					backend.sendMore(clientAddr);
-					backend.sendMore("");
-					backend.send(payload);
+				if(tupel.size() > 0) {
+					// Iterate over each client
+					for(String clientAddr : tupel.keySet()) {
+						// Get ProblemList of this client
+						ArrayList<PartialProblem> partialProblems = tupel.get(clientAddr);
+						//	If there are available works and problems for this client, send a problem
+						if(workerQueue.size() > 0 && partialProblems.size() > 0) {
+							// Determine index of last problem in our list
+							int indexLastProblem = partialProblems.size() - 1;
+							// Get last problem of our problem list.
+							PartialProblem partialProblem = partialProblems.get(indexLastProblem);
+							// Remove last problem from our list
+							partialProblems.remove(indexLastProblem);
+							// Serialize problem into a String
+							String payload = partialProblem.serialize();
+							// Send problem to a available worker
+							String workerAddress = workerQueue.remove();
+							System.out.println("Removed worker: "+ workerAddress+", currently:" + workerQueue.size());
+							backend.sendMore(workerAddress);
+							backend.sendMore("");
+							backend.sendMore(clientAddr);
+							backend.sendMore("");
+							backend.send(payload);
+						}
+					}	
 				}
-			}	
-		}
 	}
 
 }
